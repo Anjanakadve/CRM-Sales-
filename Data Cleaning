@@ -1,0 +1,95 @@
+-- data cleaning
+
+create DATABASE crm_project
+use crm_project
+ 
+ -- Accounts(company) table
+select * from accounts
+select count(*) from accounts
+select count(distinct (subsidiary_of)) from accounts  
+SELECT DISTINCT sector FROM accounts ORDER BY sector;
+
+
+UPDATE accounts 
+SET sector = CONCAT(UPPER(LEFT(sector, 1)), LOWER(SUBSTRING(sector, 2)));
+
+SELECT * FROM accounts WHERE revenue <= 0;
+
+SELECT * FROM accounts WHERE employees <= 0;
+
+SELECT * FROM accounts 
+WHERE year_established > YEAR(CURDATE()) 
+   OR year_established < 1800;
+   
+  
+
+select * from accounts
+
+-- products table
+select * from products
+
+select count(*) from products
+
+-- sales_pipeline
+select * from sales_pipeline
+
+select count(*) from sales_pipeline
+
+-- check for duplicates
+select * from(
+select * ,
+row_number() over( partition by opportunity_id order by opportunity_id) as n
+from sales_pipeline ) as ranked
+ where n>1
+
+ALTER TABLE sales_pipeline
+MODIFY column engage_date  date;
+
+ALTER TABLE sales_pipeline
+MODIFY column close_date  date;
+
+UPDATE sales_pipeline
+SET product = 'GTX Pro'
+WHERE product = 'GTXPro';
+
+SELECT * FROM sales_pipeline
+WHERE close_date > CURDATE()
+OR engage_date > CURDATE();
+
+SELECT * FROM sales_pipeline
+WHERE close_date < engage_date;
+
+
+select *  from sales_pipeline
+
+-- sales_teams
+SELECT * from sales_teams 
+
+select distinct(manager) from sales_teams
+
+select distinct(regional_office) from sales_teams
+
+SELECT manager, COUNT(sales_agent) AS total_agents
+FROM sales_teams
+GROUP BY manager
+ORDER BY total_agents DESC;
+
+select count(*) from sales_teams
+
+select * from(
+select *,
+row_number()over(partition by sales_agent order by sales_agent) as n
+from sales_teams) as ranked
+where n>1
+
+-- One agent should have only ONE manager
+SELECT sales_agent, COUNT(DISTINCT manager) AS manager_count
+FROM sales_teams
+GROUP BY sales_agent
+HAVING COUNT(DISTINCT manager) > 1;
+
+-- Agents in pipeline but NOT in sales_teams
+SELECT DISTINCT sp.sales_agent
+FROM sales_pipeline sp
+LEFT JOIN sales_teams st ON sp.sales_agent = st.sales_agent
+WHERE st.sales_agent IS NULL;
