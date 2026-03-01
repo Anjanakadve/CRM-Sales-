@@ -32,17 +32,17 @@ ORDER BY
 
 -  **Top Performers:** Software, Technology, and Retail are the "Big Three," driving nearly 50% of total revenue and showing the strongest product-market fit.
 
-- **Sector Gap:** There is a significant drop-off (over 80%) between the top sector (Software) and the lowest (Services), indicating where sales efforts are most and least efficient.
+- **Sector Gap:** Software is our strongest sector, while Services is our weakest—there's an 80% difference between them, showing where we're doing well and where we need to focus..
 ####  2.Which sales managers have the highest success rate (Win Rate) for their teams
 ``` sql
-SELECT t.manager,COUNT(p.opportunity_id) AS total_deals,
-    SUM(CASE WHEN p.deal_stage = 'Won' THEN 1 ELSE 0 END) AS won_deals,
-ROUND((SUM(CASE WHEN p.deal_stage = 'Won' THEN 1 ELSE 0 END) * 100.0) / 
-        NULLIF(COUNT(p.opportunity_id), 0), 2) AS win_rate_percentage
-FROM sales_pipeline p
-JOIN sales_teams t ON p.sales_agent = t.sales_agent
+select t.manager ,count(opportunity_id) as total_deals ,
+sum(case when deal_stage ='won' then 1 ELSE 0 end) as won_deals,
+round(sum(case when deal_stage ='won' then 1 ELSE 0 end) *100 /count(opportunity_id),2) as win_rate_percentage 
+ from sales_teams t
+join sales_pipeline s
+on s.sales_agent=t.sales_agent
 GROUP BY t.manager
-ORDER BY win_rate_percentage DESC;
+order by win_rate_percentage desc
 ```
 
 | manager | total_deals | won_deals | win_rate_percentage |
@@ -61,17 +61,18 @@ ORDER BY win_rate_percentage DESC;
 #### 3. The elite 5 Sales_agent and managers
 ``` sql
 SELECT 
-		t.manager,
+    t.manager,
     t.regional_office,
     p.sales_agent,
     SUM(p.close_value) AS total_revenue,
-    COUNT(p.opportunity_id) AS deals_won,
+    COUNT( case when p.deal_stage='won' then 1 else 0 end) AS deals_won,
     ROUND(SUM(CASE WHEN p.deal_stage = 'Won' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS win_rate_pct
 FROM sales_pipeline p
 JOIN sales_teams t ON p.sales_agent = t.sales_agent
 GROUP BY t.manager, t.regional_office, p.sales_agent
-HAVING total_revenue > 0
+HAVING sum(p.close_value) > 0
 ORDER BY total_revenue DESC limit 5;
+
 ```
 
 | manager | region_office | sales_agent | total_revenue | deals_Won | win_rate_pct |
@@ -104,13 +105,12 @@ ORDER BY total_deals DESC limit 3;
 * **Market Leader:** The **GTX Basic** is the clear volume driver with 915 wins, suggesting it is the primary entry point for new customers.
 * **Effective Tiering:** The **GTX Pro** (729 wins) shows strong performance, proving that the sales team is successfully upselling customers from the "Basic" model to higher-spec hardware.
 
- #### 5 What is our product portfolio's pipeline penetration and which high-demand products have the strongest conversion rates?
+ #### 5. Which of our popular products are  sell the best?
 ``` sql
 SELECT  p.product,  pr.series, 
     COUNT(p.opportunity_id) AS total_deals_presented, 
     SUM(CASE WHEN p.deal_stage = 'Won' THEN 1 ELSE 0 END) AS total_won, 
-    -- Popularity Score (Percentage of total pipeline) 
-    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM sales_pipeline), 2) AS pct_of_all_deals 
+     ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM sales_pipeline), 2) AS pct_of_all_deals 
 FROM sales_pipeline p 
 JOIN products pr ON p.product = pr.product 
 GROUP BY p.product, pr.series 
@@ -129,8 +129,7 @@ ORDER BY total_deals_presented DESC ;
 
 
 * **GTX Dominance:** The **GTX series** is the company's powerhouse, accounting for over **65%** of all deals presented in the pipeline.
-* **Niche Performance:** The **GTK 500** represents a negligible portion (0.37%) of the pipeline, suggesting it is either a highly specialized premium model or a legacy product near the end of its lifecycle.
-* **Volume Efficiency:** Despite the high volume of **GTX Basic**, it maintains a high win rate, proving that popularity is backed by strong customer demand and sales execution.
+* **Performance:** The **GTK 500** represents a negligible portion (0.37%) of the pipeline, suggesting it is either a highly specialized premium model or a legacy product near the end of its lifecycle.
 
 
 ####  6.Which products act as 'Time Sinks' by consuming excessive  sales effort on lost opportunities relative to successful conversions
@@ -159,7 +158,7 @@ GROUP BY p.product, pr.series
 | **GTK 500** | GTK | 15 | 64 | 10 | 38 | **298.30** |
 
 * **The Velocity King:** **GTX Pro** has the shortest sales cycle, closing in just **48 days**. This represents the most efficient path from engagement to revenue.
-* **High Stakes / Long Cycle:** **GTK 500** takes the longest to win (**64 days**). However, it produces a massive **$298.30 in revenue per engagement day**, suggesting that while it is slow, the payout is significantly higher per hour worked.
+* **High Stakes / Long Cycle:** **GTK 500** takes the longest to win (**64 days**). However, it produces a massive **$298.30 in revenue per engagement day**, suggesting that while it is slow, the payout is significantly highest.
 
 #### 7.Which products have the most consistent sales price,  and which ones suffer from high price volatility?
 ``` sql
@@ -211,11 +210,11 @@ ORDER BY total_revenue DESC;
 * **The Q2 Surge:** Revenue exploded in the second quarter, nearly **tripling** the performance of Q1. This indicates a massive shift in market traction or a highly successful seasonal campaign.
 * **Volume vs. Value:** Interestingly, Q3 saw the highest number of **deals won (1,257)**, but Q2 generated the **highest revenue**. This suggests that Q2 focused on high-value "Enterprise" contracts, while Q3 was driven by a higher volume of smaller deals.
 
-####  9."What is each account's contribution to our total success, and what percentage of our total won deals does each account represent?"
+####  9."What is top 5 account's contribution to our total success, and what percentage of our total won deals does each account represent?"
 ``` sql
 SELECT account,
     COUNT(opportunity_id) AS total_deals_won,
-    ROUND(COUNT(opportunity_id) * 100.0 / (SELECT COUNT(*) FROM sales_pipeline WHERE deal_stage = 'Won'), 2) AS pct_of_total_wins,
+    ROUND(COUNT(opportunity_id) * 100.0 / (SELECT COUNT(*) FROM sales_pipeline WHERE deal_stage = 'Won'), 2) AS pct_of_total_wins_percentage ,
     SUM(close_value) AS total_revenue_generated,
     ROUND(AVG(DATEDIFF(close_date, engage_date)), 0) AS avg_sales_cycle_days
 FROM sales_pipeline
@@ -224,7 +223,7 @@ GROUP BY account
 ORDER BY total_revenue_generated DESC limit 5;
 ```
 
-| account | total_deals_won |  pct_of_total_wins|total_revenue_generated |avg_sales_cycle_days |
+| account | total_deals_won |  pct_of_total_wins_percentage|total_revenue_generated |avg_sales_cycle_days |
 | :--- | :---: | :---: | :--- | :---: |
 | **Kan-code** | 115 | 2.71 | **341,455** | 51 |
 | **Konex** | 108 | 2.55 | **269,245** | 48 |
@@ -238,12 +237,11 @@ ORDER BY total_revenue_generated DESC limit 5;
 * **Velocity Leaders:** **Konex** and **Cheers** boast the fastest turnaround time at **48 days**, significantly outperforming the 58-day cycle seen with **Condax**.
 
 
-####  10.What is the financial weight of each account, and which clients  contribute the largest percentage to the company's total bottom line?
+####  10.Who are our biggest clients and how much do they contribute to our total revenue?
 ``` sql
 SELECT  account,
     SUM(close_value) AS total_revenue_generated,
-    -- Calculating the % of total revenue
-    ROUND(SUM(close_value) * 100.0 / (SELECT SUM(close_value) FROM sales_pipeline WHERE deal_stage = 'Won'), 2) AS pct_of_total_revenue,
+    ROUND(SUM(close_value) * 100.0 / (SELECT SUM(close_value) FROM sales_pipeline WHERE deal_stage = 'Won'), 2) AS pct_of_total_revenue_percentage,
     COUNT(opportunity_id) AS total_deals_won,
     ROUND(AVG(DATEDIFF(close_date, engage_date)), 0) AS avg_sales_cycle_days
 FROM sales_pipeline
@@ -252,7 +250,7 @@ GROUP BY account
 ORDER BY total_revenue_generated DESC limit 5;
 ```
 
-| Account | Total Revenue ($) | % of Total Revenue | Total Deals Won | Avg Sales Cycle (Days) |
+| Account | Total Revenue_generated| pct_of_total_revenue_percentage | total_deals_won | avg_sales_cycle_days |
 | :--- | :--- | :---: | :---: | :---: |
 | **Kan-code** | **341,455** | **3.41** | 115 | 51 |
 | **Konex** | **269,245** | **2.69** | 108 | 48 |
@@ -260,20 +258,20 @@ ORDER BY total_revenue_generated DESC limit 5;
 | **Cheers** | **198,020** | **1.98** | 57 | 48 |
 | **Hottechi** | **194,957** | **1.95** | 111 | 56 |
 
-* **The Revenue Anchor:** **Kan-code** is the company's most significant financial partner, responsible for **3.41%** of the total bottom line.
+* **The Revenue Prformance:** **Kan-code** is the company's most significant financial partner, responsible for **3.41%** of the total  line.
 * **Low Risk Exposure:** Because the top client represents less than **4%** of total revenue, the company's financial health is well-diversified and not overly dependent on any single contract.
 * **Cycle Comparison:** **Konex** and **Cheers** share the fastest turnaround time (**48 days**), making them the most "liquid" high-value accounts in the portfolio.
 
 
 ## 🎯 Final Strategic Recommendations
 
-Based on the comprehensive analysis of the 2017 sales pipeline (CRM Anyalsis), the following strategic actions are recommended to optimize revenue and operational efficiency:
+Based on the comprehensive analysis of the sales pipeline (CRM Anyalsis), the following strategic actions are recommended to optimize revenue and operational efficiency:
 
 
 
 ### 1. Protect Your Time (The "Fail Fast" Rule)
 * **Recommendation:** Set a **40-day "Hard Stop"** for the premium GTK 500 series.
-* ** Explanation:** "Our data shows it takes 64 days to win a big deal but only 38 days to lose one. If a deal isn't moving by day 40, we should drop it. This prevents 'Time Sinks' and lets sales reps focus on leads that actually close."
+* **Explanation:** "Our data shows it takes 64 days to win a big deal but only 38 days to lose one. If a deal isn't moving by day 40, we should drop it. This prevents 'Time Sinks' and lets sales reps focus on leads that actually close."
 
 ### 2. Double Down on the "Sweet Spot"
 * **Recommendation:** Move more marketing budget toward the **GTX Pro**.
