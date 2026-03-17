@@ -283,7 +283,7 @@ Based on the comprehensive analysis of the sales pipeline (CRM Anyalsis), the fo
 
 ### 4. Scale the "West" Success
 * **Recommendation:** Move top-performing tactics from the **West Region** to the East and Central.
-* **Explanation:** "The West is our strongest region in both revenue and win rate. We should have our West Coast managers, like Rocco Neuman, train the other regions on their specific sales scripts and closing techniques."
+* **Explanation:** "The West is our strongest region in both revenue and win rate. We should have our West Coast managers, train the other regions on their specific sales scripts and closing techniques."
 
 
 
